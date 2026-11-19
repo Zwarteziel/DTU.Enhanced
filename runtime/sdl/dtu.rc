@@ -1,0 +1,24 @@
+#include "../version.h"
+101 ICON "dtu.ico"
+1 VERSIONINFO
+FILEVERSION DTU_VERSION_MAJOR, DTU_VERSION_MINOR, DTU_VERSION_PATCH, 0
+PRODUCTVERSION DTU_VERSION_MAJOR, DTU_VERSION_MINOR, DTU_VERSION_PATCH, 0
+FILEOS 0x40004
+FILETYPE 1
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "FileDescription", "Undermountain Enhanced"
+      VALUE "FileVersion", DTU_VERSION
+      VALUE "ProductName", "Undermountain Enhanced"
+      VALUE "ProductVersion", DTU_VERSION
+      VALUE "Comments", "Build " DTU_BUILD
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

@@ -1,0 +1,16 @@
+# build output
+/build/
+/win/
+*.o
+*.obj
+*.exe
+*.dll
+recomp/dtu-main.asm
+recomp/seg*.inc
+recomp/sr.log
+recomp/a.a
+# game files never belong here
+DTUGAME.EXE
+*.EGG
+*.COW
+*.SG

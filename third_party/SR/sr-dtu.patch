@@ -1,0 +1,114 @@
+--- SR_defs.h	2026-08-27 18:37:41.000000000 +0000
++++ SR_defs.h	2026-11-09 09:37:33.304957367 +0000
+@@ -45,7 +45,7 @@
+ #define OUT_LLASM 7
+ #define OUT_X64 8
+ 
+-#define OUTPUT_TYPE  OUT_X86
++#define OUTPUT_TYPE  OUT_X64
+ 
+ 
+ #if (OUTPUT_TYPE != OUT_ORIG)
+--- SR_full_x64_instr.c	2026-08-27 18:37:41.000000000 +0000
++++ SR_full_x64_instr.c	2026-11-09 09:37:33.305162489 +0000
+@@ -677,6 +677,30 @@
+             }
+ 
+             break;
++        case UD_Ijecxz:
++        case UD_Ijcxz:
++            /* DTU: rel8-only instructions, expanded by macros (no flags affected) */
++            {
++                const char *src = output->str;
++                const char *p = NULL;
++                const char *mac = NULL;
++                if ((p = strstr(src, "jecxz ")) != NULL) mac = "JECXZ_FAR ";
++                else if ((p = strstr(src, "jcxz ")) != NULL) mac = "JCXZ_FAR ";
++                else if ((p = strstr(src, "loopne ")) != NULL) mac = "LOOPNE_FAR ";
++                else if ((p = strstr(src, "loopnz ")) != NULL) mac = "LOOPNE_FAR ";
++                else if ((p = strstr(src, "loope ")) != NULL) mac = "LOOPE_FAR ";
++                else if ((p = strstr(src, "loopz ")) != NULL) mac = "LOOPE_FAR ";
++                else if ((p = strstr(src, "loop ")) != NULL) mac = "LOOP_FAR ";
++                if (p == NULL)
++                {
++                    fprintf(stderr, "Error: unknown instruction - %i - %i - %s\n", Entry, (unsigned int)cur_ofs, output->str);
++                    return 5;
++                }
++                strncat(cOutput, src, p - src);
++                OUTPUT_STRING(mac);
++                OUTPUT_STRING(strchr(p, ' ') + 1);
++            }
++            break;
+         case UD_Ija:
+         case UD_Ijae:
+         case UD_Ijb:
+@@ -1115,6 +1139,11 @@
+             }
+ 
+             break;
++        case UD_Ioutsb:
++            /* DTU: expanded by macro in dtu runtime include (flags preserved) */
++            if (ud_obj.pfx_rep || ud_obj.pfx_repe) OUTPUT_STRING("REP_OUTSB");
++            else OUTPUT_STRING("OUTSB_1");
++            break;
+         case UD_Iout:
+             /* no flags affected */
+             {
+@@ -1252,6 +1281,9 @@
+             OUTPUT_STRING("POPFD");
+ 
+             break;
++        case UD_Ipopfw:
++            OUTPUT_STRING("POPFW");
++            break;
+         case UD_Ipush:
+             /* no flags affected */
+             {
+@@ -1405,6 +1437,10 @@
+             }
+ 
+             break;
++        case UD_Iiretd:
++            /* DTU: interrupt handlers are called by the runtime with a 3-dword frame (eip, cs, eflags) */
++            OUTPUT_STRING("RET 8");
++            break;
+         case UD_Iret:
+         case UD_Iretf:
+             /* no flags affected */
+@@ -1463,6 +1499,16 @@
+             }
+ 
+             break;
++        case UD_Iscasw:
++        case UD_Iscasd:
++            {
++                const char *sz = (ud_obj.mnemonic == UD_Iscasw)?"scasw":"scasd";
++                if (ud_obj.pfx_rep) { OUTPUT_STRING("rep a32 "); OUTPUT_STRING(sz); }
++                else if (ud_obj.pfx_repe) { OUTPUT_STRING("repe a32 "); OUTPUT_STRING(sz); }
++                else if (ud_obj.pfx_repne) { OUTPUT_STRING("repne a32 "); OUTPUT_STRING(sz); }
++                else { OUTPUT_STRING("a32 "); OUTPUT_STRING(sz); }
++            }
++            break;
+         case UD_Iscasb:
+             /* OS,SF,ZF,AF,PF,CF - modified */
+             {
+--- SR_full_win32.c	2026-08-27 18:37:41.000000000 +0000
++++ SR_full_win32.c	2026-11-09 09:58:05.539149362 +0000
+@@ -503,7 +503,7 @@
+                 }
+                 else
+                 {
+-                    printf("fixup: %i\n", (int)(intptr_t)fixup);
++                    printf("fixup: %i at (%i - 0x%x)\n", (int)(intptr_t)fixup, Entry, (unsigned int)offset);
+                     printf("op type: %i - %i - %i\n", ud_obj.operand[0].type, ud_obj.operand[1].type, ud_obj.operand[2].type);
+                     printf("op size: %i - %i - %i\n", ud_obj.operand[0].size, ud_obj.operand[1].size, ud_obj.operand[2].size);
+ 
+@@ -1033,7 +1033,7 @@
+ #endif
+                 break;
+             case UD_Iinvalid:
+-                printf("decoded length: %i\n", decoded_length);
++                printf("decoded length: %i (%i - 0x%x)\n", decoded_length, Entry, (unsigned int)offset);
+                 return 3;
+                 break;
+ 

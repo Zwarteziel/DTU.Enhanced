@@ -1,0 +1,1 @@
+./SR.exe DTUGAME.EXE dtu-main.asm >sr.log 2>&1; r=$?; grep -i "error" sr.log | head -3 | while read l; do o=$(echo "$l" | sed -E 's/.* - ([0-9]+) - .*/\1/'); printf "addr %X: %s\n" $((o+0x10000)) "$l"; done; exit $r
