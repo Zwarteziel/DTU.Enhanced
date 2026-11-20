@@ -19,7 +19,6 @@ char dtu_game_dir[1024] = ".", dtu_cd_dir[1024] = "", dtu_out_dir[1024] = ".";
 dtu_stack dtu_stk;
 uint32_t dtu_env_base, dtu_psp_base;
 uint32_t X86_InterruptFlag;
-extern uint8_t stack_start[];
 
 static void *exit_env[5];      /* __builtin_setjmp buffer: no SEH unwinding on Windows */
 static int exit_code;
@@ -147,7 +146,7 @@ void dtu_core_init(int gargc, char **gargv)
     video_init();
     io_init();
     menu_init();
-    dtu_log("[main] game=%s cd=%s data=%p stack_top=%p", dtu_game_dir, dtu_cd_dir, (void *)dtu_data_base, (void *)stack_start);
+    dtu_log("[main] game=%s cd=%s data=%p stack_top=%p", dtu_game_dir, dtu_cd_dir, (void *)dtu_data_ptr, (void *)dtu_stack_top);
 }
 
 /* Run the game until it exits (or dtu_exit is called); returns the exit code. */
@@ -163,7 +162,7 @@ static int run_inner(void)
 
 int dtu_core_run(void)
 {
-    dtu_stk.esp = ADDR(stack_start);
+    dtu_stk.esp = ADDR(dtu_stack_top);
     X86_InterruptFlag = 1;
     dtu_running = 1;
     timer_start();

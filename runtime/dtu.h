@@ -47,9 +47,14 @@ typedef struct {
 #define PTR(a) ((void *)(uintptr_t)(uint32_t)(a))
 #define ADDR(p) ((uint32_t)(uintptr_t)(p))
 
-/* original data object (0x120000...) -> recompiled location */
-extern uint8_t dtu_data_base[];
-#define DATA(a) ((void *)(dtu_data_base + ((a) - 0x120000)))
+/* original data object (0x120000...) -> recompiled location. The recompiled
+   object is either linked in (link_static.c) or loaded at start-up
+   (coffload.c, the self-building Windows version); these three pointers are
+   set by one of the two: the data object, the top of the game's stack and
+   the game's entry point (Watcom cstart_). */
+extern uint8_t *dtu_data_ptr, *dtu_stack_top;
+extern void *dtu_cstart_ptr;
+#define DATA(a) ((void *)(dtu_data_ptr + ((a) - 0x120000)))
 
 /* Fixed DOS memory: the VGA window at A0000 (the game writes there directly)
    and, in the unused monochrome area at B0000, the PSP, environment, DOS

@@ -11,6 +11,9 @@
 #include "crt_gl.h"
 #include "pad.h"
 #include "../patch13.h"
+#ifdef DTU_SELFBUILD
+#include "../selfbuild.h"
+#endif
 #include "../version.h"
 #include <stdlib.h>
 #include <string.h>
@@ -616,6 +619,9 @@ int main(int argc, char **argv)
     SDL_SetHint(SDL_HINT_WINDOWS_INTRESOURCE_ICON_SMALL, "101");
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO)) dtu_fatal("SDL_Init: %s", SDL_GetError());
     check_game_version();
+#ifdef DTU_SELFBUILD
+    if (!selfbuild_prepare()) return 0;     /* recompile the player's DTUGAME.EXE if needed, and load it */
+#endif
     SDL_WindowFlags wf = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | (cfg.fullscreen ? SDL_WINDOW_FULLSCREEN : 0);
     crtgl_set_attributes();
     win = SDL_CreateWindow(APP_NAME, cfg.width, cfg.height, wf | SDL_WINDOW_OPENGL);

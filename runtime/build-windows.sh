@@ -17,13 +17,23 @@ llvm-rc -I "$HERE" -D "DTU_BUILD=\"$BUILD\"" -fo "$OUT/dtu.res" "$HERE/sdl/dtu.r
 for a in dosmem dtu-asm asm_int asm_inout; do
   nasm -fwin64 -Ox -w+orphan-labels -I"$RECOMP/x64/" "$HERE/x64/$a.asm" -o "$OUT/$a.obj"
 done
-for c in core fault lowmem platform dos dpmi video io mve sos render menu patch13 sdl/crt_gl sdl/pad sdl/sdl_main; do
-  $WCC -O2 -g -Wall -Wno-unused-function -I"$SDL3/include" -DDTU_BUILD="\"$BUILD\"" -c "$HERE/$c.c" -o "$OUT/$(basename $c).o"
+# SELFBUILD=1: the self-building version - no game code in the exe; it
+# recompiles the player's DTUGAME.EXE at first start and loads the result
+# (selfbuild.c, coffload.c). Otherwise the recompiled object is linked in.
+if [ -n "$SELFBUILD" ]; then
+  python3 "$HERE/gen_symtab.py" "$RECOMP/x64" "$OUT/symtab.c" >/dev/null
+  GAMESRC="coffload selfbuild"; GAMEOBJ="$OUT/coffload.o $OUT/selfbuild.o $OUT/symtab.o"; DEFS="-DDTU_SELFBUILD"
+  $WCC -O2 -c "$OUT/symtab.c" -o "$OUT/symtab.o"
+else
+  GAMESRC="link_static"; GAMEOBJ="$OUT/link_static.o $RECOMP/dtu-main.obj"; DEFS=""
+fi
+for c in core fault lowmem platform dos dpmi video io mve sos render menu patch13 sdl/crt_gl sdl/pad sdl/sdl_main $GAMESRC; do
+  $WCC -O2 -g -Wall -Wno-unused-function $DEFS -I"$SDL3/include" -DDTU_BUILD="\"$BUILD\"" -c "$HERE/$c.c" -o "$OUT/$(basename $c).o"
 done
 $WCC -o "$OUT/DTU-Enhanced.exe" \
   "$OUT"/dosmem.obj "$OUT"/core.o "$OUT"/fault.o "$OUT"/lowmem.o "$OUT"/platform.o "$OUT"/dos.o "$OUT"/dpmi.o \
   "$OUT"/video.o "$OUT"/io.o "$OUT"/mve.o "$OUT"/sos.o "$OUT"/render.o "$OUT"/menu.o "$OUT"/patch13.o "$OUT"/crt_gl.o "$OUT"/pad.o "$OUT"/sdl_main.o \
-  "$OUT"/dtu-asm.obj "$OUT"/asm_int.obj "$OUT"/asm_inout.obj "$RECOMP/dtu-main.obj" "$OUT/dtu.res" \
+  "$OUT"/dtu-asm.obj "$OUT"/asm_int.obj "$OUT"/asm_inout.obj $GAMEOBJ "$OUT/dtu.res" \
   -L"$SDL3/lib" -lSDL3 "$MW/lib/libz.a" -lwinmm -mwindows \
   -Wl,--image-base,0x20000,--disable-dynamicbase,--disable-reloc-section,--disable-high-entropy-va
 # the DOS area must cover A0000-BFFFF (see x64/dosmem.asm)

@@ -880,6 +880,47 @@ Vincent: een 1.0-release op zijn GitHub, voorlopig alleen de broncode (https://g
 - Headless: het hoofdmenu toont "Undermountain Enhanced 1.0.0" en de grijze pijl, en zonder FESEQ.DAT de eigen pijl.
 - Windows-versie onder Wine: hoofdmenu, pijl en de Credits werken.
 
+### 20 november 2026: versie 1.1.0 – de speler bouwt zijn eigen versie
+
+Vincent: een download zonder spelcode, die de verbeterde versie op de pc van de speler maakt uit diens eigen DTUGAME.EXE.
+
+**Opzet.** De release-zip bevat geen code van het spel:
+- `DTU-Enhanced.exe` (onze runtime, ongeveer 1 MB, zonder de vertaalde code) en `SDL3.dll`;
+- in `enhanced/`: `SR.exe` en `nasm.exe` (voor Windows gebouwd), onze invoer voor SR (`recomp/`: de .sci-bestanden, SR.cfg, data_in_code.txt en x64/*.inc) en de licenties.
+
+Bij de eerste start maakt het programma `enhanced/cache/dtu-main.obj` en laadt dat. Het bouwt opnieuw als DTUGAME.EXE of het programma verandert: `stamp.txt` bevat de versie en bouwtijd van het programma en de grootte en CRC van DTUGAME.EXE.
+
+**De lader (`runtime/coffload.c`).** In plaats van een linker mee te leveren, laadt het programma het object van nasm zelf.
+- Gemeten aan het object: secties cseg01 (code, 1,9 MB), dseg02 (data inclusief BSS, 3,6 MB), .pdata/.xdata (één unwind-item).
+- Relocaties: 52.290 ADDR32, 28.929 REL32, 3 ADDR32NB. cseg01 heeft er meer dan 65.535; het echte aantal staat dan in de eerste relocatie (IMAGE_SCN_LNK_NRELOC_OVFL).
+- Alles komt in één blok onder 2 GB (VirtualAlloc vanaf 0x20000000, lezen/schrijven/uitvoeren). De vertaalde code werkt met 32-bits adressen, ook voor de terugkeeradressen op de stack van het spel.
+- Het object verwijst naar 75 symbolen van het programma (x86_int, SR_CheckTimer, de dtu_*-schakelaars, de SMC-buffers). Die komen uit `symtab.c`, dat `runtime/gen_symtab.py` maakt uit alle `extern`-regels in `recomp/x64/*.inc`.
+- Omgekeerd gebruikt de runtime maar drie symbolen van het object: dtu_cstart, dtu_data_base en stack_start.
+  - Die lopen nu via pointers (`dtu_cstart_ptr`, `dtu_data_ptr`, `dtu_stack_top` in dtu.h).
+  - `link_static.c` vult ze in de gewone builds (headless, en de Windows-build met de gelinkte spelcode); de lader in de zelfbouwversie.
+- .pdata wordt aangemeld met RtlAddFunctionTable.
+
+**De bouwstappen (`runtime/selfbuild.c`).** Dezelfde stappen als `recomp/build-x64.sh`, met de sed- en Python-stappen in C (spelers hebben geen Python nodig):
+1. SR.exe vertaalt DTUGAME.EXE (de Windows-versie schrijft CRLF; verder gelijk aan de Linux-uitvoer).
+2. De sed-regels (loop/rep outsb met "near") en `compact_source.py` (reeksen gelijke db- en "resb 1"-regels).
+3. nasm.exe met `-Z a.a`. Te korte sprongen worden "near" (`repair_short_jumps.py`), en nasm draait opnieuw, hooguit 6 keer. Bij DTU zijn dat 3 passes: 2448 en daarna 23 sprongen.
+- Het resultaat is op de tijdstempel na byte voor byte gelijk aan het object van `build-x64.sh` (getest met een testprogramma op Linux).
+- De stappen draaien in een aparte thread. Een klein venster (SDL_RenderDebugText) toont de stap en de verstreken tijd. Zie `docs/voorbereiden.png`.
+- Foutmeldingen in een venster: geen DTUGAME.EXE, geen versie 1.3, een ontbrekend bestand in `enhanced`, of een mislukte stap (met de log).
+- Het voorbereiden gebeurt na de versiecontrole en vóór het hoofdvenster.
+
+**Tools voor Windows.**
+- SR: gecompileerd met clang voor mingw (C plus het C++20-deel, statisch met libstdc++ en winpthreads), 450 KB.
+- nasm 2.16.03: uit de broncode met configure `--host=x86_64-w64-mingw32`, 1,6 MB. Parallel `make` gaat mis bij de gegenereerde bestanden, dus serieel.
+- `build-release.sh` doet alles en maakt `Undermountain-Enhanced-<versie>.zip` (ongeveer 3 MB). Daarvoor is in TOOLS ook `nasm-2.16.03.tar.xz` nodig.
+
+**Getest** (Windows-versie onder Wine):
+- Uit de zip in een schone spelmap: voorbereiden in 28 s (SR 6 s, drie keer nasm 7 s), daarna hoofdmenu en een savegame laden.
+- De tweede start laadt meteen.
+- Zonder nasm.exe verschijnt de melding.
+- De exe uit de zip bevat geen teksten van het spel; de gewone build wel.
+- Headless en de Windows-build met de gelinkte spelcode werken ongewijzigd.
+
 ### Volgende stap
 
 1. **Geluid beluisteren op echt Windows**: volume, links/rechts, muziek bij triggers, laden van levels. Zie in de log of er `[dos] ... took` of `[irq] no timer check` staat.

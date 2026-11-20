@@ -9,11 +9,11 @@
 
 %include "x64inc.inc"
 
-extern dtu_cstart
+extern dtu_cstart_ptr
 extern dtu_run_timer
 extern dtu_frame_hook
 extern dtu_seg_read
-extern dtu_data_base
+extern dtu_data_ptr
 extern X86_InterruptFlag
 
 global dtu_c_start
@@ -102,7 +102,12 @@ section .text code align=16
 align 16
 dtu_c_start:
         PROLOG
-        CALL dtu_cstart
+        mov rax, [rel dtu_cstart_ptr]
+        lea r8d, [rel .ret]                 ; CALL with an address taken from memory
+        lea r11d, [r11d-4]
+        mov [r11d], r8d
+        jmp rax
+    .ret:
         EPILOG
 
 ;; void dtu_c_call_irq(dtu_stack *s, uint32_t handler)
@@ -268,8 +273,9 @@ SR_FrameHook:
 align 16
 SR_dtu_fpu_init:
         fninit
-        mov byte [dtu_data_base + (0x1494D4 - 0x120000)], 3    ; __8087
-        mov byte [dtu_data_base + (0x14D330 - 0x120000)], 1    ; __real87
+        mov rax, [rel dtu_data_ptr]
+        mov byte [rax + (0x1494D4 - 0x120000)], 3    ; __8087
+        mov byte [rax + (0x14D330 - 0x120000)], 1    ; __real87
         RET
 
 ;; SOS DIGI fill handler (sos.c): called by the SOS timer service as a far

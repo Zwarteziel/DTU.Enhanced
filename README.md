@@ -1,6 +1,6 @@
 # Undermountain Enhanced
 
-Version 1.0.0
+Version 1.1.0
 
 A native Windows version of **Descent to Undermountain** (Interplay, 1997) that
 runs without DOSBox, with fixes for long-standing bugs and a number of
@@ -13,9 +13,11 @@ for this game replaces DOS, DPMI, VESA, the timer, the keyboard, the mouse and
 the HMI SOS sound driver. SDL3 handles the window, the CRT shader, sound and
 game controllers.
 
-**This repository contains no code or data of the game.** The translation is
-made on your own computer, from your own `DTUGAME.EXE`, when you build the
-program (see *Building*). There is no ready-made exe to download.
+**Neither this repository nor the download contains code or data of the
+game.** The translation is made on your own computer, from your own
+`DTUGAME.EXE`: the release zip comes with Windows builds of SR and nasm, and
+the program prepares the game with them at its first start (in less than a
+minute). You can also build everything yourself (see *Building*).
 
 ## What works
 
@@ -67,13 +69,18 @@ conversations, music and sound, saving and loading.
 
 ## Installation
 
-1. Install Descent to Undermountain and update it to version 1.3.
-2. Build `DTU-Enhanced.exe` (see *Building*) and copy it, with `SDL3.dll`,
-   into the game folder (the folder with `DTUGAME.EXE`).
+1. Install Descent to Undermountain and update it to version 1.3. (An older
+   version is detected at start-up; the program can install the 1.3 patch.)
+2. Download the zip of the [latest release](https://github.com/Zwarteziel/DTU.Enhanced/releases)
+   and unpack it into the game folder (the folder with `DTUGAME.EXE`). You get
+   `DTU-Enhanced.exe`, `SDL3.dll` and a folder `enhanced`.
 3. The game reads some files from the CD. Either set `cd_path` in
    `dtu-enhanced.ini` to the folder with the contents of the CD (the folder that
    contains `DTU\`), or copy the CD to `_CD\DTU\_CDFILES` next to the exe.
-4. Start `DTU-Enhanced.exe`.
+4. Start `DTU-Enhanced.exe`. The first time, a small window shows how the game
+   is prepared from your `DTUGAME.EXE`; the result is kept in
+   `enhanced\cache` and made again only when `DTUGAME.EXE` or the program
+   changes. `enhanced\cache\build.log` tells what happened.
 
 On first start the program writes `dtu-enhanced.ini` next to the exe. All
 settings are in that file, each with a short explanation; every improvement can
@@ -110,17 +117,29 @@ Every button can be changed in the `[controller]` section of the ini file.
 
 ## Building
 
-The build runs on Linux (or WSL on Windows) and makes a Windows exe. You need
-clang and lld (tested with 18), nasm (2.16), python3, gcc/g++, unzip and patch,
-and three archives in one folder (`TOOLS`):
+The build runs on Linux (or WSL on Windows) and makes Windows programs. You
+need clang and lld (tested with 18), nasm (2.16), python3, gcc/g++, unzip and
+patch, and these archives in one folder (`TOOLS`):
 
 | File | What |
 |---|---|
 | `SR-master.zip` | [M-HT/SR](https://github.com/M-HT/SR) as a zip of the repository |
 | `SDL3-devel-3.4.20-mingw.tar.gz` | SDL3 for mingw, from the [SDL releases](https://github.com/libsdl-org/SDL/releases) |
-| `mingw64.zip` | An MSYS2 mingw-w64 x86_64 tree (`include`, `lib` with the CRT, libgcc and `libz.a`) |
+| `mingw64.zip` | An MSYS2 mingw-w64 x86_64 tree (`include`, `lib` with the CRT, libgcc, libstdc++ and `libz.a`) |
+| `nasm-2.16.03.tar.xz` | The [nasm](https://www.nasm.us/) source (only for the release zip) |
 
-Then:
+**The release zip** (no game code, prepares the game at its first start):
+
+```sh
+TOOLS=/path/to/tools sh build-release.sh
+```
+
+This builds SR and nasm for Windows, and `DTU-Enhanced.exe` with the loader for
+the prepared game (`runtime/selfbuild.c`, `runtime/coffload.c`). The zip ends up
+in `$HOME/dtu-build/release` (set `PREFIX` for another place). It needs perl,
+autoconf, make and zip as well.
+
+**An exe with the game linked in**, from your own copy of the game:
 
 ```sh
 TOOLS=/path/to/tools GAME=/path/to/DTU sh build-windows.sh
@@ -128,8 +147,8 @@ TOOLS=/path/to/tools GAME=/path/to/DTU sh build-windows.sh
 
 `GAME` is the game folder with `DTUGAME.EXE` version 1.3. The script builds SR
 (with the patch in `third_party/SR`), translates `DTUGAME.EXE`, and links the
-result with the runtime. The exe and `SDL3.dll` end up in `$HOME/dtu-build/win`
-(set `PREFIX` for another place).
+result with the runtime. The exe and `SDL3.dll` end up in `$HOME/dtu-build/win`.
+This exe contains the translated game: keep it to yourself.
 
 `build-headless.sh` builds `dtu-headless`, a Linux version without a window
 that runs the game from a script (keys, mouse, timed screenshots, a WAV file of
@@ -144,6 +163,7 @@ the sound) and logs every DOS, DPMI and VESA call. It is used to test changes.
 | `runtime/sdl/` | The Windows front end: window, CRT shader, controller, settings |
 | `tools/` | Scripts used to find code, check the translation and test levels |
 | `third_party/` | The SR patch and the DOSBox Staging shaders |
+| `release/` | The README and licence notice that go into the release zip |
 | `docs/` | The development log (in Dutch) with screenshots and comparisons |
 
 `docs/analyse-en-plan.md` describes, version by version, how the game works
@@ -155,7 +175,9 @@ Undermountain Enhanced is released under the GNU General Public License,
 version 3 or later (see `LICENSE`).
 
 - [SR](https://github.com/M-HT/SR) by Roman Pauer, MIT licence (also GPL-2.0
-  or later); the files in `recomp/x64/` come from SR.
+  or later); the files in `recomp/x64/` come from SR. SR contains udis86
+  (BSD licence).
+- [nasm](https://www.nasm.us/), BSD licence (in the release zip).
 - CRT shaders from [DOSBox Staging](https://github.com/dosbox-staging/dosbox-staging)
   0.83, MIT licence (see `third_party/dosbox-staging-shaders`).
 - [SDL3](https://www.libsdl.org/) and [zlib](https://zlib.net/), zlib licence.
