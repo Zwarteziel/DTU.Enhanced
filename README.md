@@ -1,4 +1,4 @@
-<img width="1280" height="960" alt="dtu02" src="https://github.com/user-attachments/assets/9a16c9fb-c57f-4c41-977c-ddeb2cb5539e" />
+<img width="1280" height="960" alt="dtu01" src="https://github.com/user-attachments/assets/3ed91a61-c4f6-4aec-9836-2068b04ac357" />
 
 # Descent to Undermountain Enhanced
 
