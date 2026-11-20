@@ -172,4 +172,6 @@ Descent to Undermountain is © 1997 Interplay Productions. Dungeons & Dragons
 and Forgotten Realms are trademarks of Wizards of the Coast. This project is
 not affiliated with or endorsed by them.
 
+## 
+
 <img width="1280" height="960" alt="dtu02" src="https://github.com/user-attachments/assets/e35d6d1a-7caf-4385-b36e-0c1c4739e833" />
