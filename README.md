@@ -2,7 +2,7 @@
 
 # Descent to Undermountain Enhanced
 
-Version 1.1.0
+Version 1.1.1
 
 DTU Enhanced is a native Windows version of **Descent to Undermountain** 
 a 1998 MS-DOS game made by Interplay. It fixes a number of long-standing

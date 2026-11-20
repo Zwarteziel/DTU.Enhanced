@@ -921,6 +921,23 @@ Bij de eerste start maakt het programma `enhanced/cache/dtu-main.obj` en laadt d
 - De exe uit de zip bevat geen teksten van het spel; de gewone build wel.
 - Headless en de Windows-build met de gelinkte spelcode werken ongewijzigd.
 
+### 20 november 2026 (2): versie 1.1.1 – geen crash meer als je sterft
+
+Vincent: een crash toen een skelet hem sloeg (save "Clearic L2", bones). Op de schermafbeelding van de crash is hij net doodgegaan.
+
+**Oorzaak (in het origineel).**
+- De log gaf een toegangsfout op 0xFFFF3EE9 in de vertaalde code bij 0x9F17E, binnen de objectfunctie 0x9F153.
+- Daar staat `mov eax, [esp+4]` en `cmp word [eax+0x7E], 1`: een lokale variabele die op dat pad nooit een waarde krijgt. Het spel komt daar als het object vlag 0x40 in +0xD heeft, bijvoorbeeld de speler die net sterft.
+- Meestal staat er 0 op die plek. Sinds 0.2.11 leidt een vervanging adressen onder 0xA0000 naar de nulpagina.
+- Bij het sterven stond er een overgebleven negatief getal (0xFFFF3E6B, 0xFFFF0AEA): een adres boven de 4 GB-grens van de 32-bits code. Onder DOS/4GW zou dat ook een paginafout geven.
+- Nagespeeld met de save (headless): naar voren lopen en wachten tot de skeletten je doden. Eén van twee keer dezelfde crash.
+
+**Nieuw.** De vervanging op 0x9F17E leidt ook adressen vanaf 0x80000000 naar de nulpagina. Daar ligt in dit programma nooit geheugen van het spel.
+
+**Getest.** Hetzelfde scenario drie keer: geen crash, en het doodscherm verschijnt.
+
+**Let op voor spelers met 1.1.0.** De oplossing zit in `enhanced/recomp/instruction_replacements.sci`. Bij de eerste start van 1.1.1 wordt het spel opnieuw voorbereid, omdat het programma veranderd is.
+
 ### Volgende stap
 
 1. **Geluid beluisteren op echt Windows**: volume, links/rechts, muziek bij triggers, laden van levels. Zie in de log of er `[dos] ... took` of `[irq] no timer check` staat.
