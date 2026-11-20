@@ -2,9 +2,10 @@
 
 Version 1.1.0
 
-A native Windows version of **Descent to Undermountain** (Interplay, 1997) that
-runs without DOSBox, with fixes for long-standing bugs and a number of
-improvements. You need your own copy of the game, version 1.3.
+DTU Enhanced is a native Windows version of **Descent to Undermountain** 
+a 1998 MS-DOS game made by Interplay. It fixes a number of long-standing
+bugs and contains a number of improvements. You need your own copy of the game, 
+preferably patched to version 1.3.
 
 Undermountain Enhanced is not an emulator. The game's program, `DTUGAME.EXE`
 (a 32-bit DOS/4GW program made with Watcom C), is translated to x64 machine code
@@ -21,51 +22,35 @@ minute). You can also build everything yourself (see *Building*).
 
 ## What works
 
-The whole game: intro movies, menus, character creation, Waterdeep, all levels,
-conversations, music and sound, saving and loading.
+Highlights:
 
-**Display**
-- Window or full screen, 4:3 picture, with the VGA monitor emulation (CRT
-  shaders) of DOSBox Staging, or sharp/linear/nearest scaling without it.
-- The 3D view uses all 480 lines of the screen instead of every line twice
-  (with *Hires Dungeon Graphics* on in the game's options).
-- Full drawing quality up to the view distance: walls further away no longer
-  switch to a darker, simpler drawing method.
-- Textures on objects (tables, beds, creatures) with perspective correction.
-- Creatures and your weapon move smoothly between the 15 key frames per second
-  of their animations.
-- Creatures are drawn with their feet on the floor; in the original they often
-  walked in the air.
-- Your weapon no longer turns black for a moment during an attack.
-- Water splashes at your feet are visible again without the white flash that
-  filled the screen in the original.
+_Gameplay:
+_
+- Frame-rate independent movement;
+- Fixed original bug where ground-based creatures float in the air;
+- Fixed original bug where using ladders got you stuck;
+- Dialogs can be selected with number keys;
+- Game controller support;
+- Detection of the game's version and patch support if game is pre-v1.3.
 
-**Controls**
-- Mouse captured by the window, with adjustable speed and vertical speed.
-- A mouse pointer in the text menus (main menu, Load Game, Options).
-- Conversation answers with the keys 1-9 and 0.
-- Keys that open a screen (automap, inventory, statistics) no longer make it
-  flash open and closed when held.
-- Game controllers (Xbox, PlayStation and others), configurable.
 
-**Game**
-- Runs at 60 fps (configurable) with the movement, strafing, falling and jumps
-  of the original at about 20 fps, so they do not depend on the frame rate.
-- You no longer get stuck at the top of a ladder.
-- Footsteps of creatures no longer repeat four times per step.
-- The weapon's hit sound is no longer dropped (often on the killing blow) when
-  many ambient sounds are playing.
-- Music fades out and waits while the game loads, instead of stuttering.
-- Several crashes and freezes of the original are caught (division by zero,
-  null-pointer reads).
+_Graphics:
+_
+- VGA CRT-shaders and sharp/linear/nearest neighbour scaling;
+- Full 480-line 3D view in HR-mode, instead of original 240-lines drawn two times;
+- Full drawing quality up to view distance;
+- Smoother weapon animations;
+- Fixed original weapon texture turning black for a moment;
+- Fixed original textures on beds and tables being drawn in incorrect perspective;
+- Fixed original water-sprites creating white flashes in viewport while wading;
+- Added a mouse pointer for menu's;
 
-**Other**
-- Checks at start-up that the game files are version 1.3, and can install the
-  official 1.3 patch from `DTU1-3.EXE` or `dtu1_3.zip`
-  ([download](https://www.patches-scrolls.de/patch/1215/7/41518/download)).
-- Plays the game's MVE movies itself.
-- Shows its version at the bottom of the main menu, in the title bar and in
-  the file properties of the exe.
+_Sound:
+_
+- Fixed weapon-impact samples not playing when an enemy is slain;
+- Fixed footstep sounds being repeated to quicly;
+- Music will wait while the game loads to reduce stuttering.
+
 
 ## Installation
 
