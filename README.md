@@ -24,8 +24,7 @@ minute). You can also build everything yourself (see *Building*).
 
 Highlights:
 
-_Gameplay:
-_
+**Gameplay:**
 - Frame-rate independent movement;
 - Fixed original bug where ground-based creatures float in the air;
 - Fixed original bug where using ladders got you stuck;
@@ -34,8 +33,7 @@ _
 - Detection of the game's version and patch support if game is pre-v1.3.
 
 
-_Graphics:
-_
+**Graphics:**
 - VGA CRT-shaders and sharp/linear/nearest neighbour scaling;
 - Full 480-line 3D view in HR-mode, instead of original 240-lines drawn two times;
 - Full drawing quality up to view distance;
@@ -45,8 +43,7 @@ _
 - Fixed original water-sprites creating white flashes in viewport while wading;
 - Added a mouse pointer for menu's;
 
-_Sound:
-_
+**Sound:**
 - Fixed weapon-impact samples not playing when an enemy is slain;
 - Fixed footstep sounds being repeated to quicly;
 - Music will wait while the game loads to reduce stuttering.
