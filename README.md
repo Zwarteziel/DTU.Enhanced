@@ -9,9 +9,9 @@ a 1998 MS-DOS game made by Interplay. It fixes a number of long-standing
 bugs and contains a number of improvements. You need your own copy of the game, 
 preferably patched to version 1.3.
 
-Undermountain Enhanced is not an emulator. The game's program, `DTUGAME.EXE`
-(a 32-bit DOS/4GW program made with Watcom C), is translated to x64 machine code
-with M-HT's static recompiler [SR](https://github.com/M-HT/SR). A runtime written
+DTE Enhanced is not an emulator. The game's program, `DTUGAME.EXE` (a 32-bit
+DOS/4GW program made with Watcom C), is translated to x64 machine code with
+M-HT's static recompiler [SR](https://github.com/M-HT/SR). A runtime written
 for this game replaces DOS, DPMI, VESA, the timer, the keyboard, the mouse and
 the HMI SOS sound driver. SDL3 handles the window, the CRT shader, sound and
 game controllers.
