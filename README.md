@@ -20,9 +20,8 @@ game.** The translation is made on your own computer, from your own
 the program prepares the game with them at its first start (in less than a
 minute). You can also build everything yourself (see *Building*).
 
-## What works
+## Highlights
 
-Highlights:
 
 **Gameplay:**
 - Frame-rate independent movement;
@@ -42,6 +41,7 @@ Highlights:
 - Fixed original textures on beds and tables being drawn in incorrect perspective;
 - Fixed original water-sprites creating white flashes in viewport while wading;
 - Added a mouse pointer for menu's;
+
 
 **Sound:**
 - Fixed weapon-impact samples not playing when an enemy is slain;
