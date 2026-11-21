@@ -602,6 +602,19 @@ static int menu_key_filter(int code, int make)
     return 1;
 }
 
+/* the key the game uses for a function: slot and slot + 1 of its key table
+   (primary, secondary; FF = none), as an XT code with 0x100 for the E0 prefix
+   (the table keeps that as bit 7); fallback if neither is set */
+int io_game_key(int slot, int fallback)
+{
+    const uint8_t *tbl = DATA(0x13C1A5);
+    for (int k = 0; k < 2; k++) {
+        uint8_t b = tbl[(slot + k) * 22];
+        if (b && b != 0xFF) return b & 0x80 ? 0x100 | (b & 0x7F) : b;
+    }
+    return fallback;
+}
+
 static void kbd_deliver(dtu_stack *s, const uint8_t *bytes, int n)
 {
     for (int i = 0; i < n; i++) {

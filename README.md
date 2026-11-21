@@ -2,7 +2,7 @@
 
 # Descent to Undermountain Enhanced
 
-Version 1.1.1
+Version 1.1.2
 
 DTU Enhanced is a native Windows version of **Descent to Undermountain** 
 a 1998 MS-DOS game made by Interplay. It fixes a number of long-standing
@@ -58,9 +58,11 @@ minute). You can also build everything yourself (see *Building*).
 2. Download the zip of the [latest release](https://github.com/Zwarteziel/DTU.Enhanced/releases)
    and unpack it into the game folder (the folder with `DTUGAME.EXE`). You get
    `DTU-Enhanced.exe`, `SDL3.dll` and a folder `enhanced`.
-3. The game reads some files from the CD. Either set `cd_path` in
-   `dtu-enhanced.ini` to the folder with the contents of the CD (the folder that
-   contains `DTU\`), or copy the CD to `_CD\DTU\_CDFILES` next to the exe.
+3. The game reads its levels from the CD. Insert the CD or mount its image (ISO
+   or CUE): the program finds it by itself. A copy of the CD on disk works too:
+   copy it to `_CD\DTU\_CDFILES` next to the exe, or set `cd_path` in
+   `dtu-enhanced.ini` to the folder with the copy (the CD root or its `DTU`
+   folder).
 4. Start `DTU-Enhanced.exe`. The first time, a small window shows how the game
    is prepared from your `DTUGAME.EXE`; the result is kept in
    `enhanced\cache` and made again only when `DTUGAME.EXE` or the program
@@ -87,7 +89,7 @@ All other keys go to the game; F2 in the game changes its key bindings.
 
 | Controller | Game |
 |---|---|
-| Left stick | Walk and strafe |
+| Left stick | Walk and strafe (with the game's own keys, also after F2) |
 | Right stick | Turn and look (in menus: the pointer) |
 | RT / LT | Left / right mouse button (attack, talk) |
 | A / B | Enter / Escape |

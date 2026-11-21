@@ -19,7 +19,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum { ACT_NONE, ACT_KEY, ACT_MOUSE };
+enum { ACT_NONE, ACT_KEY, ACT_MOUSE, ACT_GAME };
+
+/* game:NAME = whatever key the game uses for that function right now (its own
+   key table, also after changing keys with F2), see io_game_key */
+static const struct { const char *name; int slot, fallback; } game_fn[] = {
+    { "forward", 24, 0x148 }, { "back", 26, 0x150 }, { "turn_left", 4, 0x14B }, { "turn_right", 6, 0x14D },
+    { "slide_left", 10, 0x2C }, { "slide_right", 12, 0x2D }, { "jump", 2, 0x39 },
+};
+#define NGAME (int)(sizeof game_fn / sizeof game_fn[0])
+static int game_held[NGAME];            /* the key sent for a held game function */
 typedef struct { int type, code; } action;
 
 /* buttons: the SDL gamepad buttons, then the two triggers */
@@ -51,6 +60,7 @@ static action parse(const char *v)
 {
     action a = { ACT_NONE, 0 };
     if (!SDL_strncasecmp(v, "key:", 4)) { a.type = ACT_KEY; a.code = (int)strtol(v + 4, NULL, 16); }
+    else if (!SDL_strncasecmp(v, "game:", 5)) { for (int i = 0; i < NGAME; i++) if (!SDL_strcasecmp(v + 5, game_fn[i].name)) { a.type = ACT_GAME; a.code = i; } }
     else if (!SDL_strncasecmp(v, "mouse:", 6)) { int b = atoi(v + 6); if (b >= 1 && b <= 3) { a.type = ACT_MOUSE; a.code = b == 1 ? 1 : b == 2 ? 2 : 4; } }
     return a;
 }
@@ -77,13 +87,14 @@ static void defaults(void)
         { TRIG_R, "mouse:1" },
     };
     for (size_t i = 0; i < sizeof d / sizeof d[0]; i++) map[d[i].b] = parse(d[i].v);
-    stick[0] = parse("key:148"); stick[1] = parse("key:150");      /* arrows: forward, back */
-    stick[2] = parse("key:1E"); stick[3] = parse("key:20");        /* A, D: slide left, right */
+    stick[0] = parse("game:forward"); stick[1] = parse("game:back");
+    stick[2] = parse("game:slide_left"); stick[3] = parse("game:slide_right");
 }
 
 static void fmt(char *out, size_t n, action a)
 {
     if (a.type == ACT_KEY) snprintf(out, n, "key:%02X", a.code);
+    else if (a.type == ACT_GAME) snprintf(out, n, "game:%s", game_fn[a.code].name);
     else if (a.type == ACT_MOUSE) snprintf(out, n, "mouse:%d", a.code == 1 ? 1 : a.code == 2 ? 2 : 3);
     else snprintf(out, n, "none");
 }
@@ -96,7 +107,13 @@ int pad_config(const char *k, const char *v)
     if (!strcmp(k, "look_speed")) { float f = (float)atof(v); if (f > 0 && f < 10000) look_speed = f; return 1; }
     if (!strcmp(k, "look_vertical")) { float f = (float)atof(v); if (f > 0 && f < 10) look_vertical = f; return 1; }
     if (!strcmp(k, "invert_y")) { invert_y = atoi(v) != 0; return 1; }
-    for (int i = 0; i < 4; i++) if (!strcmp(k, snames[i])) { stick[i] = parse(v); return 1; }
+    for (int i = 0; i < 4; i++) if (!strcmp(k, snames[i])) {
+        /* the fixed keys of versions up to 1.1.1 (arrows, and A/D, keys of one player's own
+           layout) become the game functions, whatever keys the game uses for them */
+        static const char *old[4] = { "key:148", "key:150", "key:1E", "key:20" };
+        stick[i] = !SDL_strcasecmp(v, old[i]) ? (i == 0 ? parse("game:forward") : i == 1 ? parse("game:back") : i == 2 ? parse("game:slide_left") : parse("game:slide_right")) : parse(v);
+        return 1;
+    }
     for (int i = 0; i < NB; i++) if (!strcmp(k, bnames[i])) { map[i] = parse(v); return 1; }
     return 0;
 }
@@ -116,7 +133,9 @@ void pad_write_config(FILE *f)
                "; what each button does: key:XX = scan code XX in hex (1XX = with E0 prefix,\n"
                "; e.g. 148 arrow up, 150 down, 14B left, 14D right, 1C Enter, 01 Escape,\n"
                "; 39 space, 0F Tab, 3A Caps Lock, 3B..44 F1..F10, 02..0B 1..0, 1D Ctrl,\n"
-               "; 38 Alt, 2A Shift), mouse:1 / mouse:2 / mouse:3 = mouse button, none\n",
+               "; 38 Alt, 2A Shift), mouse:1 / mouse:2 / mouse:3 = mouse button,\n"
+               "; game:forward, back, turn_left, turn_right, slide_left, slide_right, jump =\n"
+               "; the key the game uses for that (also after changing keys with F2), none\n",
             enabled, look_speed, look_vertical, invert_y, deadzone);
     for (int i = 0; i < 4; i++) { fmt(s, sizeof s, stick[i]); fprintf(f, "%s = %s\n", snames[i], s); }
     for (int i = 0; i < NB; i++) {
@@ -128,6 +147,14 @@ void pad_write_config(FILE *f)
 static void do_action(action a, int down)
 {
     if (a.type == ACT_KEY) key_out(a.code, down);
+    else if (a.type == ACT_GAME) {
+        if (down) {
+            game_held[a.code] = io_game_key(game_fn[a.code].slot, game_fn[a.code].fallback);
+            dtu_log("[pad] game:%s -> key %03X", game_fn[a.code].name, game_held[a.code]);
+        }
+        if (game_held[a.code]) key_out(game_held[a.code], down);
+        if (!down) game_held[a.code] = 0;
+    }
     else if (a.type == ACT_MOUSE) {
         if (down) mouse_bits |= a.code; else mouse_bits &= ~a.code;
         mouse_out(0, 0, mouse_bits);

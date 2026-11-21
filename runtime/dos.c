@@ -35,6 +35,8 @@ static int cd_letter = 3;          /* D: */
 typedef struct { uint32_t dta; char dir[1024]; char pat[16]; int attr; DIR *d; } find_state;
 static find_state fs[8];
 
+static int find_ci(const char *dir, const char *name, char *out, size_t outlen);
+
 void dos_init(void)
 {
     for (int i = 0; i < MAXH; i++) htab[i] = -1;
@@ -42,6 +44,31 @@ void dos_init(void)
     strcpy(hname[0], "stdin"); strcpy(hname[1], "stdout"); strcpy(hname[2], "stderr");
     for (int i = 0; i < 26; i++) strcpy(cwd[i], "\\");
     dta_addr = (PSP_SEG << 4) + 0x80;
+    /* The game keeps its saved games in the folder SAVE, which its installer
+       makes; it does not make it itself ("Error loading temp level data" when
+       saving). A game folder copied by hand may lack it. */
+    {
+        char sp[1200], nm[64];
+        if (!find_ci(dtu_game_dir, "SAVE", nm, sizeof nm)) {
+            snprintf(sp, sizeof sp, "%s/SAVE", dtu_game_dir);
+            dtu_log("[dos] no folder SAVE in the game folder: %s", mkdir(sp, 0755) == 0 ? "made it" : "cannot make it");
+        }
+    }
+    /* The game opens its CD files through the path in DTU.CFG ("CDPath=D:\DTU"),
+       the drive its installer saw. The CD is offered under that letter. */
+    char cfgpath[1200], line[256];
+    snprintf(cfgpath, sizeof cfgpath, "%s/DTU.CFG", dtu_game_dir);
+    FILE *f = fopen(cfgpath, "rb");
+    if (f) {
+        while (fgets(line, sizeof line, f))
+            if (!strncasecmp(line, "CDPath=", 7) && line[8] == ':') {
+                int l = toupper((unsigned char)line[7]) - 'A';
+                if (l >= 3 && l < 26) cd_letter = l;
+                dtu_log("[dos] DTU.CFG: CDPath=%.*s -> the CD is drive %c:", (int)strcspn(line + 7, "\r\n"), line + 7, 'A' + cd_letter);
+                break;
+            }
+        fclose(f);
+    }
 }
 
 static int dos_err(dtu_regs *r, int code)
@@ -108,15 +135,18 @@ int dos_host_path(const char *dospath, char *out, size_t outlen, int must_exist)
             comp[n] = 0;
             if (!strcmp(comp, ".")) continue;
             if (!strcmp(comp, "..")) { char *q = strrchr(out, '/'); if (q && q > out + strlen(root) - 1) *q = 0; continue; }
-            /* "C:\DTU\..." : the game may name its own install dir; the root already is it */
+            /* "C:\DTU\..." : the game names its own install dir C:\DTU (the program
+               path it is given); the root already is it, also when the game folder
+               happens to contain a folder DTU (a copy of the CD, say) */
+            if (drive == 2 && !strcasecmp(comp, "DTU") && strlen(out) == strlen(root)) continue;
             if (find_ci(out, comp, name, sizeof name)) {
                 size_t l = strlen(out);
                 snprintf(out + l, outlen - l, "/%s", name);
             } else {
                 int last = (*s == 0) || (s[strspn(s, "\\/")] == 0);
                 if (must_exist || !last) {
-                    /* tolerate a leading install-dir name such as \DTU on C: */
-                    if (drive == 2 && !strcasecmp(comp, "DTU") && strlen(out) == strlen(root)) continue;
+                    /* the CD may also be given as its folder DTU itself (a copy of it) */
+                    if (drive == cd_letter && !strcasecmp(comp, "DTU") && strlen(out) == strlen(root)) continue;
                     return 0;
                 }
                 size_t l = strlen(out);

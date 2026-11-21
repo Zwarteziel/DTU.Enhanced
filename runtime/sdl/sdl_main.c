@@ -15,6 +15,9 @@
 #include "../selfbuild.h"
 #endif
 #include "../version.h"
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -128,8 +131,9 @@ static const char *INI_TEXT =
     "music_hold = %d\n"
     "; arguments for the game (DTU -help lists them)\n"
     "args = %s\n"
-    "; folder with the contents of the CD-ROM (the folder that contains DTU\\).\n"
-    "; Empty: _CD\\DTU\\_CDFILES next to this program if it exists.\n"
+    "; folder with the contents of the CD-ROM (the CD root or its folder DTU).\n"
+    "; Empty: _CD\\DTU\\_CDFILES next to this program, the CDPath of DTU.CFG,\n"
+    "; or any CD drive (also a mounted ISO/CUE image) that holds the game's CD.\n"
     "cd_path = %s\n";
 
 static const char *shader_names[] = { "none", "crt-auto", "crt-1080p", "crt-1440p", "crt-4k" };
@@ -589,6 +593,92 @@ static void check_game_version(void)
     dtu_log("[sdl] started anyway");
 }
 
+/* ---------------- the CD ----------------
+   The levels (*.COW, *.HEN), fonts and some other files are read from the CD,
+   in its folder DTU. The CD root (the folder that holds DTU) is, in order:
+   cd_path in the ini file (the CD root or its DTU folder), _CD\DTU\_CDFILES
+   next to the exe, the CDPath of DTU.CFG if it exists on this PC, the game
+   folder itself if it holds the CD files, and any CD drive (also a mounted
+   ISO/CUE image) that holds DTU\DTU.INI. Each may also be the CD's folder DTU
+   itself; dos.c then takes D:\DTU as that folder. */
+static int has_file(const char *dir, const char *name)
+{
+    char p[1300];
+    snprintf(p, sizeof p, "%s/%s", dir, name);
+    FILE *f = fopen(p, "rb");
+    if (f) fclose(f);
+    return f != NULL;
+}
+static int is_cd_root(const char *dir) { return has_file(dir, "DTU/DTU.INI") || has_file(dir, "DTU/HMC.COW"); }
+static int use_cd(const char *dir, const char *how)
+{
+    char d[1100];
+    snprintf(d, sizeof d, "%s", dir);
+    size_t n = strlen(d);
+    while (n > 3 && (d[n - 1] == '/' || d[n - 1] == '\\')) d[--n] = 0;   /* keep "E:\" */
+    if (is_cd_root(d)) { snprintf(dtu_cd_dir, sizeof dtu_cd_dir, "%s", d); dtu_log("[cd] %s: %s", how, d); return 1; }
+    if (has_file(d, "DTU.INI") || has_file(d, "HMC.COW")) {                 /* the DTU folder itself: take its parent */
+        char *q = d + n;
+        while (q > d && q[-1] != '/' && q[-1] != '\\') q--;
+        if (q > d) { q[-1] = 0; if (strlen(d) == 2) strcat(d, "\\"); }
+        if (is_cd_root(d)) { snprintf(dtu_cd_dir, sizeof dtu_cd_dir, "%s", d); dtu_log("[cd] %s (its parent folder): %s", how, d); return 1; }
+        snprintf(d, sizeof d, "%s", dir);                                    /* a folder with a copy of DTU: that folder */
+        d[n] = 0;
+        snprintf(dtu_cd_dir, sizeof dtu_cd_dir, "%s", d); dtu_log("[cd] %s (the folder DTU of the CD): %s", how, d); return 1;
+    }
+    return 0;
+}
+static void find_cd(void)
+{
+    char p[1200], line[256];
+#ifdef _WIN32
+    UINT old_mode = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);   /* no "insert a disk" boxes */
+#endif
+    if (cfg.cd_path[0] && use_cd(cfg.cd_path, "cd_path in the ini file")) goto done;
+    if (cfg.cd_path[0]) dtu_log("[cd] cd_path %s does not hold the CD (no DTU\\DTU.INI)", cfg.cd_path);
+    snprintf(p, sizeof p, "%s/_CD/DTU/_CDFILES", dtu_game_dir);
+    if (use_cd(p, "next to the program")) goto done;
+    snprintf(p, sizeof p, "%s/DTU.CFG", dtu_game_dir);
+    FILE *f = fopen(p, "rb");
+    if (f) {
+        while (fgets(line, sizeof line, f))
+            if (!strncmp(line, "CDPath=", 7) && line[8] == ':') {
+                line[7 + strcspn(line + 7, "\r\n")] = 0;
+                if (use_cd(line + 7, "CDPath of DTU.CFG")) { fclose(f); goto done; }
+            }
+        fclose(f);
+    }
+    if (use_cd(dtu_game_dir, "in the game folder")) goto done;          /* the game installed into a copy of the CD */
+#ifdef _WIN32
+    for (char l = 'D'; l <= 'Z'; l++) {
+        char root[4] = { l, ':', '\\', 0 };
+        if (GetDriveTypeA(root) != DRIVE_CDROM) continue;
+        if (use_cd(root, "CD drive")) goto done;
+    }
+#endif
+    dtu_log("[cd] the CD was not found");
+    {
+        const SDL_MessageBoxButtonData b[] = {
+            { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Quit" },
+            { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Start anyway" },
+        };
+        const SDL_MessageBoxData box = { SDL_MESSAGEBOX_WARNING, NULL, APP_NAME,
+            "The CD of Descent to Undermountain was not found. The game reads its levels from it.\n\n"
+            "Insert the CD or mount its image (ISO or CUE), or copy the contents of the CD to the folder "
+            "_CD\\DTU\\_CDFILES next to DTU-Enhanced.exe, or set cd_path in dtu-enhanced.ini to the folder "
+            "with the contents of the CD.", 2, b, NULL };
+        int choice = 0;
+        SDL_Init(SDL_INIT_VIDEO);
+        if (!SDL_ShowMessageBox(&box, &choice)) choice = 1;
+        if (choice != 1) { dtu_log("[cd] stopped"); exit(0); }
+    }
+done:
+#ifdef _WIN32
+    SetErrorMode(old_mode);
+#endif
+    return;
+}
+
 int main(int argc, char **argv)
 {
     char path[1200], err[512];
@@ -604,13 +694,7 @@ int main(int argc, char **argv)
     load_config(path);
     if (!lowmem_ok) dtu_fatal("the DOS memory area A0000-BFFFF is not inside the program image (build error)");
 
-    if (cfg.cd_path[0]) snprintf(dtu_cd_dir, sizeof dtu_cd_dir, "%s", cfg.cd_path);
-    else {
-        snprintf(path, sizeof path, "%s/_CD/DTU/_CDFILES/DTU", dtu_game_dir);
-        FILE *probe;
-        snprintf(path, sizeof path, "%s/_CD/DTU/_CDFILES/DTU/DTU.INI", dtu_game_dir);
-        if ((probe = fopen(path, "rb"))) { fclose(probe); snprintf(dtu_cd_dir, sizeof dtu_cd_dir, "%s/_CD/DTU/_CDFILES", dtu_game_dir); }
-    }
+    find_cd();
     io_run_seconds = 0;     /* no time limit or periodic screenshots */
     io_shot_every = 0;
 

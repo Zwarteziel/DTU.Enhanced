@@ -938,6 +938,36 @@ Vincent: een crash toen een skelet hem sloeg (save "Clearic L2", bones). Op de s
 
 **Let op voor spelers met 1.1.0.** De oplossing zit in `enhanced/recomp/instruction_replacements.sci`. Bij de eerste start van 1.1.1 wordt het spel opnieuw voorbereid, omdat het programma veranderd is.
 
+### 21 november 2026: versie 1.1.2 – cd, saves en controller na meldingen op reddit
+
+Een speler op reddit (r/GamesEnhanced) meldde drie problemen met 1.1.1.
+
+**1. "Error: No CDROM drive detected", het spel stopt meteen.**
+- Het spel leest de levels (*.COW, *.HEN), lettertypen en meer van de cd, via de CDPath in DTU.CFG (`CDPath=D:\DTU`). Zonder cd stopt het met deze melding.
+- Tot nu toe moest de cd in `_CD\DTU\_CDFILES` naast de exe staan, of in `cd_path` in de ini. De speler had een image gekoppeld en moest zelf `cd_path` invullen.
+- Nieuw: `find_cd()` in `sdl_main.c` zoekt de cd achtereenvolgens in `cd_path` uit de ini, in `_CD\DTU\_CDFILES`, in de CDPath van DTU.CFG, in de spelmap zelf (voor wie in een kopie van de cd installeerde) en op elk cd-station (GetDriveTypeA = DRIVE_CDROM, dus ook een gekoppelde ISO/CUE). SetErrorMode voorkomt "plaats een schijf"-vensters.
+- Een plek telt alleen als de cd-bestanden er echt staan: `DTU\DTU.INI` of `DTU\HMC.COW`. Elke plek mag ook de map DTU van de cd zelf zijn. `dos.c` neemt dan `D:\DTU` als die map.
+- De cd-letter volgt de CDPath van DTU.CFG (vanaf D:). Tot nu toe was die vast D:.
+- Niets gevonden: een venster met uitleg (Stoppen / Toch starten).
+
+**2. "Error loading temp level data, CWD: C:\DTU\.\save" bij opslaan; in C:\DTU werkt het wel.**
+- Nagespeeld: precies deze melding als de spelmap geen map SAVE heeft. De installer maakt die map, het spel zelf niet. De speler had de spelmap met de hand samengesteld. Daarna maakte hij zelf C:\DTU\save en kopieerde zijn spelmap naar C:\DTU; daarom werkte het daar.
+- Nieuw: `dos_init` maakt SAVE als die ontbreekt.
+- Een tweede valkuil, ook nagespeeld: het spel noemt zijn eigen map C:\DTU (het programmapad dat het krijgt). Stond er in de spelmap een map DTU (een kopie van de cd), dan ging `C:\DTU\...` naar die submap en startte het spel niet. Nu is een eerste deel DTU op C: altijd de spelmap.
+
+**3. De linkerstick schuift met A en D in plaats van Z en X.**
+- De standaardknoppen kwamen uit Vincents eigen toetsindeling (KCONFIG.DAT), niet uit de handleiding.
+- De toetstabel van het spel staat op 0x13C1A5, 22 bytes per functie, steeds een eerste en tweede toets. 2 springen, 4 en 6 draaien, 10 en 12 schuiven, 24 vooruit en 26 achteruit. Toetsen met E0-voorvoegsel hebben bit 7 gezet.
+- Nieuw in `pad.c`: acties `game:forward`, `back`, `turn_left`, `turn_right`, `slide_left`, `slide_right` en `jump`. Ze sturen de toets die het spel op dat moment voor die functie gebruikt, ook na aanpassen met F2 (`io_game_key` in `io.c`). Bij loslaten gaat dezelfde toets omhoog.
+- De linkerstick gebruikt deze acties standaard. De oude waarden in een bestaande ini (`key:148`, `key:150`, `key:1E`, `key:20`) betekenen nu ook de spelfunctie.
+
+**Getest.**
+- Headless: opslaan (Alt+F2) zonder map SAVE (eerst de melding, daarna goed), met een map DTU in de spelmap, en met de cd als losse map DTU.
+- Windows-versie uit de zip onder Wine:
+  - zonder cd het venster;
+  - `cd_path` naar de cd-kopie en naar een losse map DTU: spel laden en opslaan, SAVE wordt gemaakt;
+  - virtuele controller met Vincents KCONFIG (schuiven = A/D) en zonder KCONFIG, dus de standaard van het spel (schuiven = Z/X).
+
 ### Volgende stap
 
 1. **Geluid beluisteren op echt Windows**: volume, links/rechts, muziek bij triggers, laden van levels. Zie in de log of er `[dos] ... took` of `[irq] no timer check` staat.

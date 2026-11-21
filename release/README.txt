@@ -19,10 +19,11 @@ Installation
 2. Unpack this zip file into the game folder, the folder with DTUGAME.EXE.
    You get DTU-Enhanced.exe, SDL3.dll and a folder called "enhanced".
 
-3. The game reads some files from its CD. Either copy the contents of the CD
-   to the folder _CD\DTU\_CDFILES next to DTU-Enhanced.exe, or set cd_path in
-   dtu-enhanced.ini (written at the first start) to the folder that contains
-   the DTU folder of the CD.
+3. The game reads its levels from its CD. Insert the CD or mount its image
+   (ISO or CUE); Undermountain Enhanced finds it by itself. A copy of the CD
+   on disk works too: copy the contents of the CD to the folder
+   _CD\DTU\_CDFILES next to DTU-Enhanced.exe, or set cd_path in
+   dtu-enhanced.ini (written at the first start) to the folder with the copy.
 
 4. Start DTU-Enhanced.exe.
 

@@ -162,6 +162,7 @@ void render_sound_at_pos(dtu_regs *r);
 void menu_mouse(dtu_regs *r);
 void menu_version(dtu_regs *r);
 void menu_init(void);
+int io_game_key(int slot, int fallback);
 int  menu_pointer(int *x, int *y, const uint32_t **img, int *w, int *h);
 void io_mouse_totals(int *mx, int *my, unsigned clicks[2]);
 void render_scale_draw(void);
